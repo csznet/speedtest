@@ -25,27 +25,33 @@ IS_ROOT=0
 install_if_missing() {
     local cmd=$1
     local pkg=$2
+
     if ! command -v "$cmd" &>/dev/null; then
         color_echo yellow "🔧 缺少依赖：$cmd，正在尝试安装..."
+
         if [ -f /etc/debian_version ]; then
             if [ $IS_ROOT -eq 1 ]; then
-                apt update && apt install -y "$pkg"
+                # 尝试仅安装，不强制更新，避免卡在失效源
+                if ! apt install -y "$pkg"; then
+                    color_echo red "❌ 安装 $pkg 失败。你可以尝试先修复源或手动运行：apt install $pkg"
+                    exit 1
+                fi
             else
-                color_echo red "❌ 不是 root，且无 sudo。请手动安装：apt install $pkg"
+                color_echo red "❌ 当前不是 root，且无 sudo。请手动安装：apt install $pkg"
                 exit 1
             fi
         elif [ -f /etc/redhat-release ]; then
             if [ $IS_ROOT -eq 1 ]; then
                 yum install -y "$pkg"
             else
-                color_echo red "❌ 不是 root，且无 sudo。请手动安装：yum install $pkg"
+                color_echo red "❌ 当前不是 root，且无 sudo。请手动安装：yum install $pkg"
                 exit 1
             fi
         elif [ -f /etc/alpine-release ]; then
             if [ $IS_ROOT -eq 1 ]; then
                 apk add "$pkg"
             else
-                color_echo red "❌ 不是 root，且无 sudo。请手动安装：apk add $pkg"
+                color_echo red "❌ 当前不是 root，且无 sudo。请手动安装：apk add $pkg"
                 exit 1
             fi
         else
@@ -54,6 +60,7 @@ install_if_missing() {
         fi
     fi
 }
+
 
 install_if_missing wget wget
 install_if_missing bc bc
